@@ -141,3 +141,6 @@ dist
 # OSX
 
 .DS_Store
+layers/.DS_Store
+build 2.zip
+rarity.js

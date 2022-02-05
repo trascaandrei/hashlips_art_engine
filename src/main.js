@@ -30,6 +30,7 @@ var attributesList = [];
 var dnaList = new Set();
 const DNA_DELIMITER = "-";
 const HashlipsGiffer = require(`${basePath}/modules/HashlipsGiffer.js`);
+var hornUsed = false;
 
 let hashlipsGiffer = null;
 
@@ -87,26 +88,41 @@ const getElements = (path) => {
 };
 
 const layersSetup = (layersOrder) => {
-  const layers = layersOrder.map((layerObj, index) => ({
-    id: index,
-    elements: getElements(`${layersDir}/${layerObj.name}/`),
-    name:
-      layerObj.options?.["displayName"] != undefined
-        ? layerObj.options?.["displayName"]
-        : layerObj.name,
-    blend:
-      layerObj.options?.["blend"] != undefined
-        ? layerObj.options?.["blend"]
-        : "source-over",
-    opacity:
-      layerObj.options?.["opacity"] != undefined
-        ? layerObj.options?.["opacity"]
-        : 1,
-    bypassDNA:
-      layerObj.options?.["bypassDNA"] !== undefined
-        ? layerObj.options?.["bypassDNA"]
-        : false,
-  }));
+  const layers = layersOrder.map((layerObj, index) => {
+    const elements = getElements(`${layersDir}/${layerObj.name}/`);
+    const choices = layerObj.options?.["choices"]
+    return {
+      id: index,
+      elements: 
+        choices
+          ? elements.filter((e) => choices.includes(e.name))
+          : elements,
+      name:
+        layerObj.options?.["displayName"] != undefined
+          ? layerObj.options?.["displayName"]
+          : layerObj.name,
+      blend:
+        layerObj.options?.["blend"] != undefined
+          ? layerObj.options?.["blend"]
+          : "source-over",
+      opacity:
+        layerObj.options?.["opacity"] != undefined
+          ? layerObj.options?.["opacity"]
+          : 1,
+      bypassDNA:
+        layerObj.options?.["bypassDNA"] !== undefined
+          ? layerObj.options?.["bypassDNA"]
+          : false,
+      chance:
+        layerObj.options?.["chance"] !== undefined
+          ? layerObj.options?.["chance"]
+          : 1,
+      choices:
+        layerObj.options?.["choices"] !== undefined
+          ? layerObj.options?.["choices"]
+          : null
+    }
+  });
   return layers;
 };
 
@@ -173,7 +189,7 @@ const addMetadata = (_dna, _edition) => {
 
 const addAttributes = (_element) => {
   let selectedElement = _element.layer.selectedElement;
-  attributesList.push({
+  _element.layer.name !== 'auxiliar' && attributesList.push({
     trait_type: _element.layer.name,
     value: selectedElement.name,
   });
@@ -228,6 +244,7 @@ const constructLayerToDna = (_dna = "", _layers = []) => {
       name: layer.name,
       blend: layer.blend,
       opacity: layer.opacity,
+      chance: layer.chance,
       selectedElement: selectedElement,
     };
   });
@@ -386,14 +403,24 @@ const startCreating = async () => {
             drawBackground();
           }
           renderObjectArray.forEach((renderObject, index) => {
-            drawElement(
-              renderObject,
-              index,
-              layerConfigurations[layerConfigIndex].layersOrder.length
-            );
-            if (gif.export) {
-              hashlipsGiffer.add();
+            if ((hornUsed && renderObject.layer.name === 'HORNS')
+                || (renderObject.layer.name !== 'HORNS' && Math.random() < renderObject.layer.chance)) {
+              drawElement(
+                renderObject,
+                index,
+                layerConfigurations[layerConfigIndex].layersOrder.length
+              );
+              if (gif.export) {
+                hashlipsGiffer.add();
+              }
+              if (renderObject.layer.name === 'auxiliar') {
+                hornUsed = true;
+              }
+              if (renderObject.layer.name === 'HORNS') {
+                hornUsed = false;
+              }
             }
+            
           });
           if (gif.export) {
             hashlipsGiffer.stop();
